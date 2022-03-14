@@ -41,6 +41,7 @@ The information from both datasets is combined into a single .csv file, which co
 10. *eng_speakers*: the percentage of english speakers in the country of residence of the speaker
 11. *line*: the utterance in the recording
 12. *accent*: the accent label (from openslr + assigned label for the accent archive samples)
+13. *accent_group*: same as the accent column, but with some accents grouped together.
 
 
 The accent of the Speech Accent Archive samples was determined primarily by the native language of the speaker. Native speakers of English were broken down further into the following categories, depending on their birthplace:
@@ -49,6 +50,13 @@ The accent of the Speech Accent Archive samples was determined primarily by the 
 - UK: *british*
 - Ireland: *irish*
 - Australia: *australian*
-- New Zealand: *kiwi*
-- South Africa: *south african*
 - Any other country: *english*
+
+
+The following native speakers were also grouped together in the same accent group:
+- Indian accent group (incl. Indo-European Indian languages): Hindi, Bengali, Urdu, Marathi, Punjabi, Gujarati.
+- South Slavic: Bulgarian, Croatian, Slovenian.
+- West Slavic: Polish, Slovak.
+- East Slavic: Russian, Ukrainian.
+- Scandinavian: Swedish, Danish, Norwegian.
+- Dutch: Dutch, Vlaams, Afrikaans, Frisian.
