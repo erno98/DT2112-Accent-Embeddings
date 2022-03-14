@@ -54,6 +54,8 @@ accents = {
 for country in accents:
     arch_df["accent"] = arch_df["accent"].where((arch_df["birthplace"] != country) | (arch_df["native_language"] != "english"), accents[country])
 
+arch_df = arch_df.drop(1441)
+
 final_df = arch_df
 
 for path in rec_path[1:]:
