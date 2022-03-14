@@ -44,15 +44,27 @@ arch_df["accent"] = arch_df["native_language"]
 accents = {
     "usa": "american",
     "canada": "canadian",
-    "uk": "british",
+    "uk": 'british',
     "australia": "australian",
-    "new zealand": "kiwi",
-    "south africa": "south african",
     "ireland": "irish"
 }
 
 for country in accents:
     arch_df["accent"] = arch_df["accent"].where((arch_df["birthplace"] != country) | (arch_df["native_language"] != "english"), accents[country])
+
+arch_df["accent_group"] = arch_df["accent"]
+indian_languages = ["hindi", "bengali", "urdu", "marathi", "gujarati", "punjabi"]
+south_slavic = ["croatian", "slovenian", "bulgarian"]
+west_slavic = ["polish", "slovak"]
+east_slavic = ["russian", "ukrainian"]
+scandinavian = ["danish", "norwegian", "swedish"]
+dutch = ["dutch", "vlaams", "afrikaans", "frisian"]
+arch_df["accent_group"] = arch_df.accent_group.apply(lambda x: "indian" if x in indian_languages else x)
+arch_df["accent_group"] = arch_df.accent_group.apply(lambda x: "dutch" if x in dutch else x)
+arch_df["accent_group"] = arch_df.accent_group.apply(lambda x: "south slavic" if x in south_slavic else x)
+arch_df["accent_group"] = arch_df.accent_group.apply(lambda x: "west slavic" if x in west_slavic else x)
+arch_df["accent_group"] = arch_df.accent_group.apply(lambda x: "east slavic" if x in east_slavic else x)
+arch_df["accent_group"] = arch_df.accent_group.apply(lambda x: "scandinavian" if x in scandinavian else x)
 
 arch_df = arch_df.drop(1441)
 
@@ -74,8 +86,8 @@ for path in rec_path[1:]:
     lndxdf["country"] = "ireland" if accent=="irish" else "uk"
     lndxdf["eng_speakers"] = 98.37 if accent=="irish" else 97.74
     lndxdf["accent"] = accent
+    lndxdf["accent_group"] = accent
     final_df = pd.concat([final_df, lndxdf], axis=0, ignore_index=True)
-
 
 print(final_df[["country", "accent"]])
 final_df["line"] = final_df["line"].apply(lambda x: x.replace(",", " "))
