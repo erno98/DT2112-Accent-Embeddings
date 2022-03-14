@@ -30,6 +30,7 @@ arch_df = arch_df.drop(columns=["Unnamed: 9", "Unnamed: 10", "Unnamed: 11", "fil
 cols = arch_df.birthplace.str.split(", ", -1, expand=False)
 arch_df.birthplace = cols.apply(lambda x: x[-1])
 arch_df.filename = arch_df.filename.apply(lambda x: os.path.join(rec_path[0], x))
+arch_df.filename = arch_df.filename.apply(lambda x: x + ".wav")
 
 english_df = pd.read_excel("wikipedia_eng_lng_pop.ods", engine="odf")
 english_df = english_df[["Country", "Total English speakers (%)"]]
@@ -60,6 +61,7 @@ for path in rec_path[1:]:
     accent, _, gender = name.split("_")
     lndxdf = pd.read_csv(os.path.join(path, "line_index.csv"), header=None, names=["_", "filename", "line"])
     lndxdf.filename = lndxdf.filename.apply(lambda x: x + ".wav")
+    lndxdf.filename = lndxdf.filename.apply(lambda x: os.path.join(path, x[1:]))
     lndxdf = lndxdf.drop(columns=['_'])
     lndxdf["age"] = np.NAN
     lndxdf["age_onset"] = 0.0
