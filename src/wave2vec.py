@@ -17,11 +17,20 @@ def extract_audios_1d_array(df):
 
     all_data = []   
     cont = 0
+    out = 0
     # Do it every thounsand files, instead of 13000 audios at the same time. Otherwise .npy file is too big
     for l in range(14):
         arrays = []
+        if out == 1: 
+            break 
+        
         print('turn',cont,cont+1000)
-        for i in range(cont,cont+1000):#len(df['filename'])):
+        for i in range(cont,cont+1000):
+
+            if i == 50:#len(df['filename']):
+                out = 1
+                break 
+
             if i%500 == 0:
                 print(i)
             audio_path ="./../.." + df['filename'].iloc[i][1:]
@@ -33,13 +42,15 @@ def extract_audios_1d_array(df):
             try: 
                 data, samplerate = sf.read(audio_path, dtype='float32')
                 arrays.append(data)
+                all_data.append(data)
             except:
                 print('error: ',df['filename'].iloc[i]) 
+
         # Convert to tensor and save
         print('saving---')
         with open('./../../datasets/data_array/audio_array'+str(i)+'.npy', 'wb') as f:
             np.save(f, np.array(arrays))
-        all_data.append(arrays)
+        
         
         cont += 1000
         
@@ -97,31 +108,33 @@ def save_labels_to_tensor(df):
 
 
 def padding(data):
+
     '''given a batch, pad the data to the longest vector of the batch'''
     max = 0
     min = 10000000000
     pos_max = 0
     pos_min = 0
     for i in range(len(data)):
-    if len(data[i]) > max:
-        max = len(data[i])
-        pos_max = i 
-    if len(data[i]) < min:
-        min = len(data[i])
-        pos_min = i 
-    
+        if len(data[i]) > max:
+            max = len(data[i])
+            pos_max = i 
+        if len(data[i]) < min:
+            min = len(data[i])
+            pos_min = i 
+        
     print('max: ',max,', pos: ',pos_max)
     print('min: ',min,', pos: ',pos_min)
 
     '''Pad with zeros all the arrays to the largest one'''
-    arrays_padded = np.zeros((len(arrays),max))
+    arrays_padded = np.zeros((len(data),max))
     max_pad = [0]*max
-    for i in range(len(arrays)):
-    print(i)
-    copy_array = max_pad.copy()
-    copy_array[:len(arrays[i])] = arrays[i]
-    copy_array = np.array(copy_array)
-    arrays_padded[i] = copy_array
+    for i in range(len(data)):
+        if i%500 == 0:
+            print(i)
+        copy_array = max_pad.copy()
+        copy_array[:len(data[i])] = data[i]
+        copy_array = np.array(copy_array)
+        arrays_padded[i] = copy_array
 
     return arrays_padded
 
@@ -133,4 +146,6 @@ def padding(data):
 # save_labels_to_tensor(df)
 
 data = extract_audios_1d_array(df)
+
+print('data size: ', len(data))
 padded_data = padding(data)
