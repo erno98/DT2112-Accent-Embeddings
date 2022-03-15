@@ -9,74 +9,75 @@ import torchaudio
 df = pd.read_csv('./../Dataset/dataset.csv')
 print(df.head())
 
-# Select subdataset, given that there are errors with southern_english_male
+# Select subdataset without southern_english_male, given that there are missing files 
 df = df[~df['filename'].str.contains('./datasets/southern_english_male/')].copy()
-# df = df[['filename','line', 'accent']]
-
-
  
  
-def extract_audios_array(df):
+def extract_audios_1d_array(df):
 
-    errors = []    
+    all_data = []   
     cont = 0
+    # Do it every thounsand files, instead of 13000 audios at the same time. Otherwise .npy file is too big
     for l in range(14):
         arrays = []
-        print('turno',cont,cont+1000)
+        print('turn',cont,cont+1000)
         for i in range(cont,cont+1000):#len(df['filename'])):
             if i%500 == 0:
                 print(i)
-            audio ="./../.." + df['filename'].iloc[i][1:]
+            audio_path ="./../.." + df['filename'].iloc[i][1:]
 
             # if exists(audio) == False:
             #     errors.append(df['filename'].iloc[i])
             #     print(audio,'------',df['filename'].iloc[i])
-            
+
             try: 
-                data, samplerate = sf.read(audio, dtype='float32')
+                data, samplerate = sf.read(audio_path, dtype='float32')
                 arrays.append(data)
-            except: 
-                errors.append(df['filename'].iloc[i])
+            except:
+                print('error: ',df['filename'].iloc[i]) 
         # Convert to tensor and save
         print('saving---')
-        with open('./../Dataset/audio_features/audio_features'+str(i)+'.npy', 'wb') as f:
+        with open('./../../datasets/data_array/audio_array'+str(i)+'.npy', 'wb') as f:
             np.save(f, np.array(arrays))
+        all_data.append(arrays)
         
         cont += 1000
+        
+    return all_data
 
 
-
-
-
-def extract_audios_features(df):
-    arrays = []
-    errors = []
+def extract_wave2vec_features(df):
     
+    all_data = [] 
+
+    torch.random.manual_seed(0)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")   
+    bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
+    model = bundle.get_model().to(device)
+
     # Go through each audio, convert it to array and extract its features. 
     for i in range(len(df['filename'])):
         if i%500 == 0:
             print(i)
-        audio ="./../.." + df['filename'].iloc[i][1:]        
+        audio_path ="./../.." + df['filename'].iloc[i][1:]        
         try: 
-            waveform, sample_rate = torchaudio.load(audio)
+            waveform, sample_rate = torchaudio.load(audio_path)
             waveform = waveform.to(device)
             if sample_rate != bundle.sample_rate:
                 waveform = torchaudio.functional.resample(waveform, sample_rate, bundle.sample_rate)
 
             with torch.inference_mode():
-                features, _ = model.extract_features(waveform)            
-            # arrays.append(features)
+                features, _ = model.extract_features(waveform)   
+                            
+            torch.save(features, './../../datasets/wave2vec_features/wave2vec_features'+str(i)+'.pt')
+            all_data.append(features)
         except: 
-            errors.append(df['filename'].iloc[i])
-            print('error')
-        
-        torch.save(features, './../Dataset/tensors/audio_features'+str(i)+'.pt')
-        # with open('./../Dataset/tensors/audio_features'+str(i)+'.npy', 'wb') as f:
-        #     np.save(f, np.array(features))
-    return None
+            print('error: ',df['filename'].iloc[i])
+
+    return all_data
 
 
-def save_labels(df):
+def save_labels_to_tensor(df):
 
     # Convert labels to numpy  and save it
     names=list(df.columns)
@@ -89,17 +90,47 @@ def save_labels(df):
 
     print('\nlabels: \n',labels.head()) 
     print('size: ', labels.size )
-    # for col in names:
-    #   df[col] = df[col].astype('string')
-    # df['accent'] = df['accent'].astype('bool')
-    # df['accent'] = df['accent'].astype('int')
 
     # Convert to tensor and save
     with open('./../Dataset/csv_features.npy', 'wb') as f:
         np.save(f, df.to_numpy())
 
-extract_audios_array(df)
 
-# extract_audios_features(df)
+def padding(data):
+    '''given a batch, pad the data to the longest vector of the batch'''
+    max = 0
+    min = 10000000000
+    pos_max = 0
+    pos_min = 0
+    for i in range(len(data)):
+    if len(data[i]) > max:
+        max = len(data[i])
+        pos_max = i 
+    if len(data[i]) < min:
+        min = len(data[i])
+        pos_min = i 
+    
+    print('max: ',max,', pos: ',pos_max)
+    print('min: ',min,', pos: ',pos_min)
 
-# save_labels(df)
+    '''Pad with zeros all the arrays to the largest one'''
+    arrays_padded = np.zeros((len(arrays),max))
+    max_pad = [0]*max
+    for i in range(len(arrays)):
+    print(i)
+    copy_array = max_pad.copy()
+    copy_array[:len(arrays[i])] = arrays[i]
+    copy_array = np.array(copy_array)
+    arrays_padded[i] = copy_array
+
+    return arrays_padded
+
+
+
+
+# extract_wave2vec_features(df)
+
+# save_labels_to_tensor(df)
+
+data = extract_audios_1d_array(df)
+padded_data = padding(data)
