@@ -19,7 +19,7 @@ def extract_audios_1d_array(df):
     cont = 0
     out = 0
     # Do it every thounsand files, instead of 13000 audios at the same time. Otherwise .npy file is too big
-    for l in range(14):
+    for l in range(20):
         arrays = []
         if out == 1: 
             break 
@@ -27,7 +27,7 @@ def extract_audios_1d_array(df):
         print('turn',cont,cont+1000)
         for i in range(cont,cont+1000):
 
-            if i == 50:#len(df['filename']):
+            if i == len(df['filename']):
                 out = 1
                 break 
 
@@ -68,22 +68,19 @@ def extract_wave2vec_features(df):
 
     # Go through each audio, convert it to array and extract its features. 
     for i in range(len(df['filename'])):
-        if i%500 == 0:
-            print(i)
+        print(i)
         audio_path ="./../.." + df['filename'].iloc[i][1:]        
-        try: 
-            waveform, sample_rate = torchaudio.load(audio_path)
-            waveform = waveform.to(device)
-            if sample_rate != bundle.sample_rate:
-                waveform = torchaudio.functional.resample(waveform, sample_rate, bundle.sample_rate)
+        waveform, sample_rate = torchaudio.load(audio_path)
+        waveform = waveform.to(device)
+        if sample_rate != bundle.sample_rate:
+            waveform = torchaudio.functional.resample(waveform, sample_rate, bundle.sample_rate)
 
-            with torch.inference_mode():
-                features, _ = model.extract_features(waveform)   
-                            
-            torch.save(features, './../../datasets/wave2vec_features/wave2vec_features'+str(i)+'.pt')
-            all_data.append(features)
-        except: 
-            print('error: ',df['filename'].iloc[i])
+        with torch.inference_mode():
+            features, _ = model.extract_features(waveform)   
+                        
+        torch.save(features, './../../datasets/wave2vec_features/wave2vec_features'+str(i)+'.pt')
+
+        all_data.append(features)
 
     return all_data
 
@@ -141,11 +138,11 @@ def padding(data):
 
 
 
-# extract_wave2vec_features(df)
+extract_wave2vec_features(df)
 
 # save_labels_to_tensor(df)
 
-data = extract_audios_1d_array(df)
+# data = extract_audios_1d_array(df)
 
-print('data size: ', len(data))
-padded_data = padding(data)
+# print('data size: ', len(data))
+# padded_data = padding(data)
