@@ -17,49 +17,33 @@ df = df[~df['filename'].str.contains('./datasets/southern_english_male/')].copy(
  
  
 def extract_audios_array(df):
-    df_final = df.iloc[0].copy()
-    arrays = []
-    arrays2 = []
-    errors = []
 
-    for i in range(8000):
-        if i%500 == 0:
-            print(i)
-        audio ="./../.." + df['filename'].iloc[i][1:]
+    errors = []    
+    cont = 0
+    for l in range(14):
+        arrays = []
+        print('turno',cont,cont+1000)
+        for i in range(cont,cont+1000):#len(df['filename'])):
+            if i%500 == 0:
+                print(i)
+            audio ="./../.." + df['filename'].iloc[i][1:]
 
-        # if exists(audio) == False:
-        #     errors.append(df['filename'].iloc[i])
-        #     # df_final = pd.concat([df_final, df.iloc[[i]].copy()], axis = 0)
-        #     print(audio,'------',df['filename'].iloc[i])
+            # if exists(audio) == False:
+            #     errors.append(df['filename'].iloc[i])
+            #     print(audio,'------',df['filename'].iloc[i])
+            
+            try: 
+                data, samplerate = sf.read(audio, dtype='float32')
+                arrays.append(data)
+            except: 
+                errors.append(df['filename'].iloc[i])
+        # Convert to tensor and save
+        print('saving---')
+        with open('./../Dataset/audio_features/audio_features'+str(i)+'.npy', 'wb') as f:
+            np.save(f, np.array(arrays))
         
-        try: 
-            data, samplerate = sf.read(audio, dtype='float32')
-            arrays.append(data)
-        except: 
-            errors.append(df['filename'].iloc[i])
+        cont += 1000
 
-    with open('./../Dataset/audio_features.npy', 'wb') as f:
-        np.save(f, np.array(arrays))
-    
-    for i in range(8000,len(df['filename'])):
-        if i%500 == 0:
-            print(i)
-        audio ="./../.." + df['filename'].iloc[i][1:]
-
-        # if exists(audio) == False:
-        #     errors.append(df['filename'].iloc[i])
-        #     # df_final = pd.concat([df_final, df.iloc[[i]].copy()], axis = 0)
-        #     print(audio,'------',df['filename'].iloc[i])
-        
-        try: 
-            data, samplerate = sf.read(audio, dtype='float32')
-            arrays2.append(data)
-        except: 
-            errors.append(df['filename'].iloc[i])
-    # Convert to tensor and save
-    with open('./../Dataset/audio_features2.npy', 'wb') as f:
-        np.save(f, np.array(arrays2))
-# arrays = extract_audios_array(df)
 
 
 
@@ -114,7 +98,8 @@ def save_labels(df):
     with open('./../Dataset/csv_features.npy', 'wb') as f:
         np.save(f, df.to_numpy())
 
+extract_audios_array(df)
 
-extract_audios_features(df)
+# extract_audios_features(df)
 
-save_labels(df)
+# save_labels(df)
