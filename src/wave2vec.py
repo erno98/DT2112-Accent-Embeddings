@@ -5,20 +5,16 @@ import soundfile as sf
 import matplotlib.pyplot as plt
 import torch
 import torchaudio
-
-df = pd.read_csv('./../Dataset/dataset.csv')
-print(df.head())
-
-# Select subdataset without southern_english_male, given that there are missing files 
-df = df[~df['filename'].str.contains('./datasets/southern_english_male/')].copy()
- 
+import librosa
+import re
+import sox
  
 def extract_audios_1d_array(df):
 
     all_data = []   
     cont = 0
     out = 0
-    # Do it every thounsand files, instead of 13000 audios at the same time. Otherwise .npy file is too big
+    # Do it every thounsand files, instead of 13000 audios at the same time. Otherwise .npy file generated is too big
     for l in range(20):
         arrays = []
         if out == 1: 
@@ -31,20 +27,19 @@ def extract_audios_1d_array(df):
                 out = 1
                 break 
 
-            if i%500 == 0:
-                print(i)
+            # if i%500 == 0:
+            print(i)
             audio_path ="./../.." + df['filename'].iloc[i][1:]
 
             # if exists(audio) == False:
-            #     errors.append(df['filename'].iloc[i])
             #     print(audio,'------',df['filename'].iloc[i])
-
-            try: 
-                data, samplerate = sf.read(audio_path, dtype='float32')
-                arrays.append(data)
-                all_data.append(data)
-            except:
-                print('error: ',df['filename'].iloc[i]) 
+ 
+            target_sr = 16000 # set it to None to have native sampling rate
+            data, sr = librosa.load(audio_path, sr=None)
+            # data = librosa.feature.melspectrogram(y=data, sr=sr)
+            print(data.shape)
+            arrays.append(data)
+            all_data.append(data)
 
         # Convert to tensor and save
         print('saving---')
@@ -67,7 +62,7 @@ def extract_wave2vec_features(df):
     model = bundle.get_model().to(device)
 
     # Go through each audio, convert it to array and extract its features. 
-    for i in range(len(df['filename'])):
+    for i in range( len(df['filename'])):
         print(i)
         audio_path ="./../.." + df['filename'].iloc[i][1:]        
         waveform, sample_rate = torchaudio.load(audio_path)
@@ -75,12 +70,14 @@ def extract_wave2vec_features(df):
         if sample_rate != bundle.sample_rate:
             waveform = torchaudio.functional.resample(waveform, sample_rate, bundle.sample_rate)
 
+        # Features is a list of tensors. Each tensor is the output of a transformer layer. 
         with torch.inference_mode():
             features, _ = model.extract_features(waveform)   
-                        
-        torch.save(features, './../../datasets/wave2vec_features/wave2vec_features'+str(i)+'.pt')
 
-        all_data.append(features)
+        # Instead of saving all the tensor, we can try to save only the last one               
+        # torch.save(features[-1], './../../datasets/wave2vec_features/wave2vec_features'+str(i)+'.pt')
+        all_data.append(features[-1])
+    torch.save(all_data, './../../datasets/wave2vec_features/wave2vec_features'+str(i)+'.pt')
 
     return all_data
 
@@ -135,14 +132,28 @@ def padding(data):
 
     return arrays_padded
 
+def remove_characters(df):
+    ''' remove special characters and change uppercases '''
+    chars_to_ignore_regex = '[\,\?\.\!\-\;\:\"]'
+
+    for i in range(len(df['line'])):
+        df['line'].iloc[i] = re.sub(chars_to_ignore_regex, '', df['line'].iloc[i]).lower() + " "
+        # Replace " " by "|", because models have "|" instead of " " as label
+        df['line'].iloc[i] = re.sub(' ', '|', df['line'].iloc[i]) + " "
+
+    return df
 
 
 
-extract_wave2vec_features(df)
 
-# save_labels_to_tensor(df)
+df = pd.read_csv('./../Dataset/dataset.csv')
 
+# Select subdataset without southern_english_male, given that there are missing files 
+df = df[~df['filename'].str.contains('./datasets/southern_english_male/')].copy()
+
+# df = remove_characters(df)
+ 
 # data = extract_audios_1d_array(df)
-
-# print('data size: ', len(data))
+# extract_wave2vec_features(df)
+ 
 # padded_data = padding(data)
